@@ -1,0 +1,27 @@
+---
+- hosts: samplehost
+  user: admuser
+  sudo: yes
+  tasks:
+  - name: download MySQL5.7 repository
+    get_url:
+      url=https://dev.mysql.com/get/mysql-apt-config_0.8.6-1_all.deb
+      dest=/tmp/mysql-apt-config_0.8.6-1_all.deb
+  - name: install deb
+    apt: deb=/tmp/mysql-apt-config_0.8.6-1_all.deb
+  - name: delete deb
+    file: path=/tmp/mysql-apt-config_0.8.6-1_all.deb state=absent
+  - name: MySQL | install mysql-client
+    apt: name={{ item }} force=yes  state=latest update_cache=yes
+    with_items:
+      - mysql-community-client
+      - mysql-client
+      - libmysqlclient-dev
+  - name: Apt install software-properties-common
+    apt:  pkg=software-properties-common force=yes update_cache=yes
+  - name: apt-key
+    command: "apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xF1656F24C74CD1D8"
+  - name: add-apt-repository
+    command: "add-apt-repository 'deb [arch=amd64,i386,ppc64el] http://ftp.yz.yamagata-u.ac.jp/pub/dbms/mariadb/repo/10.2/ubuntu xenial main'"
+  - name: Install MariaDB-client
+    apt: name=mariadb-client force=yes state=latest update_cache=yes

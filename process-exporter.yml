@@ -1,0 +1,55 @@
+---
+- hosts: samplehost
+  user: admuser
+  sudo: yes
+  vars:
+    proc_names:
+      - { name: nginx, regex: master }
+  tasks:
+  - name: check exist file
+    stat:
+      path: /usr/bin/process-exporter
+    register: file
+  - name: wget process-exporter
+    get_url:
+      url: https://github.com/ncabatoff/process-exporter/releases/download/v0.2.11/process-exporter_0.2.11_linux_amd64.tar.gz
+      dest: /tmp/process-exporter_0.2.11_linux_amd64.tar.gz
+  - name: unarchive  process-exporter
+    unarchive:
+      src: /tmp/process-exporter_0.2.11_linux_amd64.tar.gz
+      remote_src: yes
+      dest: /tmp/
+  - name: copy process-exporter binary
+    shell: cp /tmp/process-exporter /usr/bin/process-exporter
+    when: not file.stat.exists
+  - name: create process-exorter dir
+    file:
+     state: directory
+     group: root
+     owner: root
+     path: /usr/local/process-exporter
+     recurse: yes
+  - name: create config.yaml
+    template:
+      src: /data/ansible/template/process-exporter/config.yaml.j2
+      dest: /usr/local/process-exporter/config.yaml
+      owner: root
+      group: root
+      mode: 0644
+  - name: create process-exporter systemd
+    blockinfile:
+      path: /etc/systemd/system/process-exporter.service
+      create: yes
+      block: |
+        [Unit]
+        Description=process-exporter for Prometheus
+
+        [Service]
+        Restart=always
+        ExecStart=/usr/bin/process-exporter \
+        ExecReload=/bin/kill -HUP $MAINPID
+        TimeoutStopSec=20s
+        SendSIGKILL=no
+
+        [Install]
+        WantedBy=multi-user.target

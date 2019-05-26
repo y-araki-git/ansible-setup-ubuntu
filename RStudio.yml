@@ -1,0 +1,15 @@
+---
+- hosts: samplehost
+  user: admuser
+  sudo: yes
+  - name: install R
+    apt: pkg={{ item }} force=yes update_cache=yes state=latest
+    with_items:
+      - gdebi-core
+  - name: wget install del
+    get_url:
+      url=https://download2.rstudio.org/rstudio-server-1.1.456-amd64.deb
+      dest=/tmp/rstudio-server-1.1.456-amd64.deb
+      mode=0755
+  - name: gedbi r server
+    shell: gedbi /tmp/rstudio-server-1.1.456-amd64.deb

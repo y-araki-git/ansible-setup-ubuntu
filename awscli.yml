@@ -1,0 +1,7 @@
+---
+- hosts: samplehost
+  user: admuser
+  sudo: yes
+  tasks:
+  - name: pip install aws cli
+    pip: name=awscli

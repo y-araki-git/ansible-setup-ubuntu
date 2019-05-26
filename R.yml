@@ -1,0 +1,20 @@
+---
+- hosts: samplehost
+  user: admuser
+  sudo: yes
+  vars:
+   lsb_release: xenial
+  tasks:
+  - name: add source.list
+    blockinfile:
+      dest: /etc/apt/sources.list
+      block: |
+        ## For R package
+        deb https://cran.rstudio.com/bin/linux/ubuntu {{lsb_release}}/
+
+  - name: add apt
+    shell: gpg --keyserver keyserver.ubuntu.com --recv-key E084DAB9 && gpg -a --export E084DAB9 | sudo apt-key add -
+  - name: install R
+    apt: pkg={{ item }} force=yes update_cache=yes state=latest
+    with_items:
+      - r-base

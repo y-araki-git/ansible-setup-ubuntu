@@ -1,0 +1,152 @@
+---
+- hosts: samplehost
+  user: admuser
+  sudo: yes
+  tasks:
+  - name: check exist file
+    stat: 
+      path: /usr/bin/node_exporter
+    register: file
+  - name: wget node-expoter
+    get_url:
+      url: https://github.com/prometheus/node_exporter/releases/download/v0.16.0/node_exporter-0.16.0.linux-amd64.tar.gz
+      dest: /tmp/node_exporter-0.16.0.linux-amd64.tar.gz
+  - name: unarchive node-exporter
+    unarchive:
+      src: /tmp/node_exporter-0.16.0.linux-amd64.tar.gz
+      remote_src: yes
+      dest: /tmp/     
+  - name: copy node-exporter binary
+    shell: cp /tmp/node_exporter-0.16.0.linux-amd64/node_exporter /usr/bin/node_exporter
+    when: not file.stat.exists
+
+  - name: add system account prometheus
+    user:
+      system: yes
+      name: prometheus
+      state: present
+      home: /var/lib/prometheus
+      shell: /bin/false
+      comment: Prometheus daemon
+  - name: create prometheus home directory
+    file:
+      state: directory
+      path: /var/lib/prometheus
+      mode: 0755
+      group: prometheus
+      owner: prometheus
+  - name: create node_exporter systemd
+    blockinfile:
+      path: /etc/systemd/system/node_exporter.service
+      create: yes
+      block: |
+        [Unit]
+        Description=node_exporter for Prometheus
+        
+        [Service]
+        Restart=always
+        User=prometheus
+        ExecStart=/usr/bin/node_exporter \
+            --web.listen-address=0.0.0.0:9100 \
+            --collector.diskstats.ignored-devices="^(dm-|ram|loop|fd|(h|s|v|xv)d[a-z]|nvme\\d+n\\d+p)\\d+$" \
+            --collector.filesystem.ignored-mount-points="^/(dev|proc|sys|run|var/lib/(docker|lxcfs|nobody_tmp_secure))($|/)" \
+            --collector.filesystem.ignored-fs-types="^(autofs|binfmt_misc|cgroup|configfs|debugfs|devpts|devtmpfs|fuse.*|hugetlbfs|mqueue|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|sysfs|tracefs)$" \
+            --collector.netdev.ignored-devices="^(lo|docker[0-9]|veth.+)$" \
+            --no-collector.conntrack \
+            --collector.cpu \
+            --collector.diskstats \
+            --no-collector.filefd \
+            --collector.filesystem \
+            --collector.loadavg \
+            --collector.meminfo \
+            --collector.netdev \
+            --collector.netstat \
+            --no-collector.ntp \
+            --no-collector.sockstat \
+            --collector.stat \
+            --collector.textfile \
+            --no-collector.time \
+            --collector.uname \
+            --collector.vmstat \
+            --no-collector.arp \
+            --no-collector.bcache \
+            --no-collector.bonding \
+            --no-collector.buddyinfo \
+            --no-collector.drbd \
+            --no-collector.edac \
+            --no-collector.entropy \
+            --no-collector.hwmon \
+            --no-collector.infiniband \
+            --no-collector.interrupts \
+            --no-collector.ipvs \
+            --no-collector.ksmd \
+            --no-collector.logind \
+            --no-collector.mdadm \
+            --no-collector.meminfo_numa \
+            --no-collector.mountstats \
+            --no-collector.nfs \
+            --no-collector.nfsd \
+            --no-collector.qdisc \
+            --no-collector.runit \
+            --no-collector.supervisord \
+            --no-collector.systemd \
+            --no-collector.tcpstat \
+            --no-collector.timex \
+            --no-collector.wifi \
+            --no-collector.xfs \
+            --no-collector.zfs \
+            --collector.textfile.directory=/usr/local/node_exporter/textfile/
+        ExecReload=/bin/kill -HUP $MAINPID
+        TimeoutStopSec=20s
+        SendSIGKILL=no
+        
+        [Install]
+        WantedBy=multi-user.target
+  - name: add node_exporter systemd 
+    systemd:
+      name: node_exporter.service
+      enabled: yes
+      state: started
+  - name: create node_exorter dir
+    file:
+     state: directory
+     group: root
+     owner: root
+     path: /usr/local/node_exporter/textfile
+     recurse: yes
+  - name: add userlist.sh
+    copy:
+      src: /data/ansible/template/userlist.sh
+      dest: /usr/local/node_exporter/userlist.sh
+      mode: 0740
+      force: no
+      group: root
+      owner: root
+  - name: add cron job userlist
+    cron:
+     name: userlist.sh
+     minute: "*/30"
+     hour: "*"
+     day: "*"
+     month: "*" 
+     weekday: "*"
+     job: "/usr/local/node_exporter/userlist.sh > /dev/null 2>&1"
+     state: present
+  - name: add who.sh
+    copy:
+      src: /data/ansible/template/who.sh
+      dest: /usr/local/node_exporter/who.sh
+      mode: 0740
+      force: no
+      group: root
+      owner: root
+  - name: add cron job wholist
+    cron:
+     name: who.sh
+     minute: "*/5"
+     hour: "*"
+     day: "*"
+     month: "*"
+     weekday: "*"
+     job: "/usr/local/node_exporter/who.sh > /dev/null 2>&1"
+     state: present

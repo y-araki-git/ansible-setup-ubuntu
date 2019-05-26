@@ -1,0 +1,25 @@
+---
+- hosts: samplehost
+  user: admuser
+  become: yes
+  tasks:
+  - name: add pyenv
+    copy:
+      src: /data/ansible/template/pyenv.sh
+      dest: /etc/profile.d/pyenv.sh
+      mode: 0777
+      force: no
+      group: root
+      owner: root
+- hosts: samplehost
+  user: admuser
+  become: yes
+  become_user: devuser
+  tasks:
+  - name: git clone pyenv
+    git:
+      repo: git://github.com/pyenv/pyenv.git
+      dest: /home/devuser/.pyenv
+      accept_hostkey: yes
+  - name: source .bashrc
+    shell: bash -lc "source /etc/profile.d/pyenv.sh"

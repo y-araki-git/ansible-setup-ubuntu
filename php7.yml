@@ -1,0 +1,29 @@
+---
+- hosts: samplehost
+  user: admuser
+  sudo: yes
+  tasks:
+  - name: install language-pack-en-base
+    apt: pkg=language-pack-en-base force=yes update_cache=yes state=latest
+  - name: add-apt-repository ppa:ondrej/php
+    command: "add-apt-repository ppa:ondrej/php"
+  - name: install php7.1-fpm and php7.1-cli
+    apt: pkg={{ item }} force=yes update_cache=yes state=latest
+    with_items:
+      - php7.1-zip
+      - php7.1-fpm
+      - php7.1-cli
+  - name: install php7.1-* extensions
+    apt: pkg={{ item }} force=yes update_cache=yes state=latest
+    with_items:
+      - php7.1-common
+      - php7.1-mysql
+      - php7.1-mbstring
+      - php7.1-xml
+  - name: copy logrotate
+    copy:
+      src: /data/ansible/template/logrotate/php7.1-fpm
+      dest: /etc/logrotate.d/php7.1-fpm
+      force: yes
+  - name: restart php7.1-fpm
+    service: name=php7.1-fpm state=restarted

@@ -1,0 +1,53 @@
+---
+- hosts: samplehost
+  user: admuser
+  sudo: yes
+  vars:
+    configfile: /data/ansible/template/ 
+  tasks:
+  - name: check exist file
+    stat:
+      path: /usr/bin/grok_exporter
+    register: file
+  - name: wget grok_exporter
+    get_url:
+      url: https://github.com/fstab/grok_exporter/releases/download/v0.2.5/grok_exporter-0.2.5.linux-amd64.zip
+      dest: /tmp/grok_exporter-0.2.5.linux-amd64.zip
+  - name: unarchive grok_exporter
+    unarchive:
+      src: /tmp/grok_exporter-0.2.5.linux-amd64.zip
+      remote_src: yes
+      dest: /tmp/
+  - name: copy exporter binary
+    shell: cp /tmp/grok_exporter-0.2.5.linux-amd64/grok_exporter /usr/bin/grok_exporter
+    when: not file.stat.exists
+  - name: create grok_exorter dir
+    file:
+     state: directory
+     group: root
+     owner: root
+     path: /usr/local/grok_exporter/
+     recurse: yes
+  - name: create grok_exporter systemd
+    blockinfile:
+      path: /etc/systemd/system/grok_exporter.service
+      create: yes
+      block: |
+        [Unit]
+        Description=grok_exporter for Prometheus
+
+        [Service]
+        Restart=always
+        ExecStart=/usr/bin/grok_exporter \
+            -config=/usr/local/grok_exporter/config.yml
+        ExecReload=/bin/kill -HUP $MAINPID
+        TimeoutStopSec=20s
+        SendSIGKILL=no
+
+        [Install]
+        WantedBy=multi-user.target
+  - name: add grok_exporter systemd
+    systemd:
+      name: grok_exporter.service
+      enabled: yes
+      state: stoped

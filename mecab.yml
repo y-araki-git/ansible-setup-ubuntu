@@ -1,0 +1,14 @@
+---
+- hosts: samplehost
+  user: devuser
+  sudo: yes
+  tasks:
+  - name: Apt install 
+    apt:  pkg={{ item }} force=yes update_cache=yes
+    with_items:
+      - libmecab-dev
+      - mecab
+      - mecab-ipadic
+      - mecab-ipadic-utf8
+#  - name: Pip3 install mecab-python3
+#    pip: name=mecab-python3
