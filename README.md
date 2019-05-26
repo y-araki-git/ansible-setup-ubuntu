@@ -8,7 +8,7 @@ AnsibleでUbuntuの自動セットアップ。
 
 メインの実行ファイルを作成して、各ymlファイルをインクルードする形で進めるとよい。  
 
-  - 構成
+  - 構成  
   ├sftp.yml # sftp用ユーザ作成、設定  
   ├awscli.yml # awscliインストール  
   ├default.yml  # OS初期設定、サーバ共通設定  
